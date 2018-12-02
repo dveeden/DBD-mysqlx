@@ -1,0 +1,259 @@
+/*
+ *  DBD::mysqlx - DBI X Protocol driver for the MySQL database
+ *
+ *  Copyright (c) 2018 Daniël van Eeden
+ *
+ *  You may distribute this under the terms of either the GNU General Public
+ *  License or the Artistic License, as specified in the Perl README file.
+ */
+
+#include "dbdimp.h"
+
+DBISTATE_DECLARE;
+
+static void dbd_drv_error(SV *h, int rc, const char *what) {
+  D_imp_xxh(h);
+
+  DBIh_SET_ERR_CHAR(h, imp_xxh, Nullch, rc, what, Nullch, Nullch);
+
+  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "dbd_drv_error\n");
+}
+
+void dbd_init(dbistate_t *dbistate) {
+  DBISTATE_INIT; // Initialize the DBI macros
+}
+
+int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
+                  char *pwd, SV *attribs) {
+  int port = 33060;
+  int errcode;
+  char errstr[255];
+
+  dTHX;
+  D_imp_xxh(dbh);
+
+  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "port=%d, user=%s, password=%s\n", port,
+                  uid, pwd);
+
+  imp_dbh->sess =
+      mysqlx_get_session(NULL, port, uid, pwd, NULL, errstr, &errcode);
+
+  if (!imp_dbh->sess) {
+    dbd_drv_error(dbh, errcode, errstr);
+    return 0;
+  } else {
+    DBIc_IMPSET_on(imp_dbh); // request call to destroy
+    DBIc_ACTIVE_on(imp_dbh); // request call to disconnect
+  }
+
+  return 1;
+}
+
+int dbd_db_STORE_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv, SV *valuesv) {
+  return TRUE;
+}
+
+SV *dbd_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv) {
+  return &PL_sv_yes;
+}
+
+int dbd_db_commit(SV *dbh, imp_dbh_t *imp_dbh) { return 0; }
+
+int dbd_db_rollback(SV *dbh, imp_dbh_t *imp_dbh) { return 0; }
+
+void dbd_db_destroy(SV *dbh, imp_dbh_t *imp_dbh) { return; }
+
+int dbd_db_disconnect(SV *dbh, imp_dbh_t *imp_dbh) {
+  if (imp_dbh->sess)
+    mysqlx_session_close(imp_dbh->sess);
+
+  DBIc_IMPSET_off(imp_dbh);
+
+  return 1;
+}
+
+int dbd_st_STORE_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv, SV *valuesv) {
+  return 0;
+}
+
+SV *dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv) {
+  D_imp_xxh(sth);
+  STRLEN(kl);
+  char *key = SvPV(keysv, kl);
+  int numFields = DBIc_NUM_FIELDS(imp_sth);
+
+  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "dbd_st_FETCH_attrib %s\n", key);
+
+  AV *av = newAV();
+  for (int i = 0; i < numFields; i++) {
+    SV *sv = &PL_sv_undef;
+
+    switch (*key) {
+    case 'N':
+      if (strEQ(key, "NAME")) {
+        const char *colname = mysqlx_column_get_name(imp_sth->result, i);
+        sv = newSVpvn(colname, strlen(colname));
+      }
+      break;
+    }
+    av_push(av, sv);
+  }
+
+  if (av == Nullav)
+    return &PL_sv_undef;
+
+  return sv_2mortal(newRV_inc((SV *)av));
+}
+
+AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
+  mysqlx_row_t *row;
+  AV *av;
+  int numFields = DBIc_NUM_FIELDS(imp_sth);
+  long int intres, precision;
+  long unsigned int uintres;
+  size_t buf_len = 1024;
+  char buf[1024];
+
+  D_imp_xxh(sth);
+
+  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh),
+                  "DBD::mysqlx dbd_st_fetch with %d fields\n", numFields);
+
+  if (!((row = mysqlx_row_fetch_one(imp_sth->result)))) {
+    DBIc_ACTIVE_off(imp_sth);
+    return Nullav;
+  }
+
+  av = DBIc_DBISTATE(imp_sth)->get_fbav(imp_sth);
+  for (int i = 0; i < numFields; i++) {
+    unsigned int coltype;
+    coltype = mysqlx_column_get_type(imp_sth->result, i);
+    if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh),
+                    "DBD::mysqlx dbd_st_fetch column type for column %d: %u\n",
+                    i, coltype);
+
+    switch (coltype) {
+    case MYSQLX_TYPE_SINT:
+      mysqlx_get_sint(row, i, &intres);
+      if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+        PerlIO_printf(DBIc_LOGPIO(imp_xxh),
+                      "DBD::mysqlx dbd_st_fetch ROW[%d] = %ld\n", i, intres);
+      sv_setiv(AvARRAY(av)[i], intres);
+      break;
+    case MYSQLX_TYPE_UINT:
+      mysqlx_get_uint(row, i, &uintres);
+      if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+        PerlIO_printf(DBIc_LOGPIO(imp_xxh),
+                      "DBD::mysqlx dbd_st_fetch ROW[%d] = %ld\n", i, uintres);
+      sv_setuv(AvARRAY(av)[i], uintres);
+      break;
+    case MYSQLX_TYPE_DOUBLE:
+      // mysqlx_get_double()
+      // sv_setnv()
+    case MYSQLX_TYPE_FLOAT:
+      // mysqlx_get_float()
+    case MYSQLX_TYPE_BYTES:
+    case MYSQLX_TYPE_TIME:
+    case MYSQLX_TYPE_DATETIME:
+    case MYSQLX_TYPE_SET:
+    case MYSQLX_TYPE_ENUM:
+    case MYSQLX_TYPE_BIT:
+    case MYSQLX_TYPE_DECIMAL:
+    case MYSQLX_TYPE_BOOL:
+    case MYSQLX_TYPE_JSON:
+      croak("Unsupported column type");
+      break;
+    case MYSQLX_TYPE_STRING:
+      buf_len = 1024;
+      switch (mysqlx_get_bytes(row, i, 0, buf, &buf_len)) {
+      case RESULT_NULL:
+        SvOK_off(AvARRAY(av)[i]);
+        break;
+      case RESULT_ERROR:
+        croak("Error fetching string");
+        break;
+      case RESULT_MORE_DATA: // TODO: Handle properly
+      default:
+        sv_setpvn(AvARRAY(av)[i], buf, buf_len - 1);
+      }
+      break;
+    case MYSQLX_TYPE_GEOMETRY:
+    case MYSQLX_TYPE_TIMESTAMP:
+    case MYSQLX_TYPE_NULL:
+    case MYSQLX_TYPE_EXPR:
+      croak("Unsupported column type");
+      break;
+    default:
+      croak("Unknown column type");
+    }
+  }
+
+  return av;
+}
+
+int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs) {
+  D_imp_xxh(sth);
+  D_imp_dbh_from_sth;
+
+  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "DBD::mysqlx dbd_st_prepare for %s\n",
+                  statement);
+
+  imp_sth->stmt = mysqlx_sql_new(imp_dbh->sess, statement, strlen(statement));
+
+  DBIc_IMPSET_on(imp_sth);
+  return 1;
+}
+
+int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
+  D_imp_xxh(sth);
+
+  imp_sth->result = mysqlx_execute(imp_sth->stmt);
+  if (!imp_sth->result) {
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "DBD::mysqlx dbd_st_execute err: %s\n",
+                  mysqlx_error_message(imp_sth->stmt));
+    return -2;
+  }
+
+  DBIc_NUM_FIELDS(imp_sth) = mysqlx_column_get_count(imp_sth->result);
+  DBIc_ACTIVE_on(imp_sth);
+
+  uint64_t affected = mysqlx_get_affected_count(imp_sth->result);
+  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh),
+                  "DBD::mysqlx dbd_st_execute affected: %ld\n", affected);
+
+  if (affected > INT_MAX) {
+    return -1;
+  } else {
+    return (int)affected;
+  }
+}
+
+int dbd_st_blob_read(SV *sth, imp_sth_t *imp_sth, int field, long offset,
+                     long len, SV *destrv, long destoffset) {
+  return 0;
+}
+
+int dbd_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV sql_type,
+                SV *attribs, int is_inout, IV maxlen) {
+  return 0;
+}
+
+int dbd_st_finish3(SV *sth, imp_sth_t *imp_sth, int from_destroy) {
+  if (DBIc_ACTIVE(imp_sth)) {
+    mysqlx_result_free(imp_sth->result);
+    imp_sth->result = NULL;
+    DBIc_ACTIVE_off(imp_sth);
+  }
+  return 1;
+}
+
+void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth) {
+  DBIc_IMPSET_off(imp_sth); /* let DBI know we've done it   */
+}

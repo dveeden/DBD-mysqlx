@@ -1,0 +1,10 @@
+Makefile
+Makefile.old
+MYMETA.json
+MYMETA.yml
+blib
+mysqlx.bs
+mysqlx.c
+mysqlx.xsi
+pm_to_blib
+*.o
