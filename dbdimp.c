@@ -112,7 +112,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
   mysqlx_row_t *row;
   AV *av;
   int numFields = DBIc_NUM_FIELDS(imp_sth);
-  long int intres, precision;
+  long int intres;
   long unsigned int uintres;
   size_t buf_len = 1024;
   char buf[1024];
@@ -199,12 +199,18 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
 int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs) {
   D_imp_xxh(sth);
   D_imp_dbh_from_sth;
+  int param_count;
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "DBD::mysqlx dbd_st_prepare for %s\n",
                   statement);
 
   imp_sth->stmt = mysqlx_sql_new(imp_dbh->sess, statement, strlen(statement));
+
+  // FIXME: use something similar to mysql_stmt_param_count()
+  //        or actually handle comments. Maybe use count_params() from DBD::mysql
+  for (param_count=0; statement[param_count]; statement[param_count]=='?' ? param_count++ : *statement++);
+  DBIc_NUM_PARAMS(imp_sth) = param_count;
 
   DBIc_IMPSET_on(imp_sth);
   return 1;
@@ -215,8 +221,9 @@ int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
 
   imp_sth->result = mysqlx_execute(imp_sth->stmt);
   if (!imp_sth->result) {
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "DBD::mysqlx dbd_st_execute err: %s\n",
-                  mysqlx_error_message(imp_sth->stmt));
+    if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "DBD::mysqlx dbd_st_execute err: %s\n",
+                    mysqlx_error_message(imp_sth->stmt));
     return -2;
   }
 
@@ -242,6 +249,27 @@ int dbd_st_blob_read(SV *sth, imp_sth_t *imp_sth, int field, long offset,
 
 int dbd_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV sql_type,
                 SV *attribs, int is_inout, IV maxlen) {
+  int param_num= SvIV(param);
+  int result;
+
+  D_imp_xxh(sth);
+
+  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh),
+                  "DBD::mysqlx dbd_bind_ph num=%d value=%s sql_type=%"IVdf"\n",
+                  param_num, neatsvpv(value,0), sql_type);
+
+  // TODO: switch(sql_type)
+  // TODO: Handle other types than uint
+  // TODO: The docs for mysqlx_stmt_bind() say all binds are reset on each call
+  //       Should we call it only once? Move it to dbd_st_execute() ?
+  result = mysqlx_stmt_bind(imp_sth->stmt, PARAM_UINT(SvUV(value)), PARAM_END);
+
+  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh),
+                  "DBD::mysqlx dbd_bind_ph result=%d\n", result);
+  if (result == RESULT_OK) return 1;
+
   return 0;
 }
 
