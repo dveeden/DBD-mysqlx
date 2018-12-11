@@ -1,0 +1,10 @@
+dbdimp.c
+dbdimp.h
+dbivport.h
+lib/DBD/mysqlx.pm
+LICENSE
+Makefile.PL
+MANIFEST
+mysqlx.h
+mysqlx.xs
+README.md

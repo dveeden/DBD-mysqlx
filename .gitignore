@@ -8,3 +8,4 @@ mysqlx.c
 mysqlx.xsi
 pm_to_blib
 *.o
+DBD-mysqlx-*.tar.gz
