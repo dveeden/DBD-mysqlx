@@ -59,9 +59,29 @@ SV *dbd_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv) {
   return &PL_sv_yes;
 }
 
-int dbd_db_commit(SV *dbh, imp_dbh_t *imp_dbh) { return 0; }
+int dbd_db_commit(SV *dbh, imp_dbh_t *imp_dbh) {
+  D_imp_xxh(dbh);
+  int result = mysqlx_transaction_commit(imp_dbh->sess);
+  if ((result != RESULT_OK) && (DBIc_TRACE_LEVEL(imp_xxh) >= 2)) {
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "DBD::mysqlx dbd_db_commit err: %s\n",
+                  mysqlx_error_message(imp_dbh->sess));
+    return 1;
+  } else {
+    return 0;
+  }
+}
 
-int dbd_db_rollback(SV *dbh, imp_dbh_t *imp_dbh) { return 0; }
+int dbd_db_rollback(SV *dbh, imp_dbh_t *imp_dbh) {
+  D_imp_xxh(dbh);
+  int result = mysqlx_transaction_rollback(imp_dbh->sess);
+  if ((result != RESULT_OK) && (DBIc_TRACE_LEVEL(imp_xxh) >= 2)) {
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "DBD::mysqlx dbd_db_rollback err: %s\n",
+                  mysqlx_error_message(imp_dbh->sess));
+    return 1;
+  } else {
+    return 0;
+  }
+}
 
 void dbd_db_destroy(SV *dbh, imp_dbh_t *imp_dbh) { return; }
 
