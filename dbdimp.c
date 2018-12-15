@@ -246,6 +246,22 @@ bcd_done:
       }
       break;
     case MYSQLX_TYPE_BOOL:
+      buf_len = 1024;
+      switch (mysqlx_get_bytes(row, i, 0, buf, &buf_len)) {
+      case RESULT_NULL:
+        SvOK_off(AvARRAY(av)[i]);
+        break;
+      case RESULT_ERROR:
+        croak("Error fetching bool");
+        break;
+      case RESULT_MORE_DATA: // TODO: Handle properly
+      default:
+        if (buf[0] == 0x2)
+          sv_setuv(AvARRAY(av)[i], 1);
+        else
+          sv_setuv(AvARRAY(av)[i], 0);
+      }
+      break;
     case MYSQLX_TYPE_JSON:
       croak("Unsupported column type");
       break;
