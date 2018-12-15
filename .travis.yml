@@ -1,0 +1,22 @@
+dist: xenial
+sudo: false
+language: perl
+perl:
+  - "5.22"
+  - "5.24"
+  - "5.24-shrplib"
+  - "5.26"
+  - "5.26-shrplib"
+  - "5.28"
+addons:
+  apt:
+    sources:
+      - sourceline: 'deb http://repo.mysql.com/apt/ubuntu/ xenial mysql-tools'
+    packages:
+      - libmysqlcppconn-dev
+install:
+  - cpanm --quiet --notest --skip-satisfied DBI
+  - cpanm --verbose --installdeps --notest .
+script:
+  - perl Makefile.PL
+  - make disttest
