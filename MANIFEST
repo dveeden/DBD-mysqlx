@@ -8,3 +8,4 @@ MANIFEST
 mysqlx.h
 mysqlx.xs
 README.md
+t/do1.t
