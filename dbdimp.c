@@ -136,6 +136,12 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
   long unsigned int uintres;
   size_t buf_len = 1024;
   char buf[1024];
+  char buf2[1024];
+  size_t buf2_len = 1024;
+  int precision;
+  unsigned char dbuf[1024];
+  size_t dbuf_len = 1024;
+  bool is_negative;
 
   D_imp_xxh(sth);
 
@@ -147,6 +153,10 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
     DBIc_ACTIVE_off(imp_sth);
     return Nullav;
   }
+
+  // Docs for X Protocol data types:
+  // https://dev.mysql.com/doc/internals/en/x-protocol-messages-messages.html
+  // https://github.com/mysql/mysql-server/blob/8.0/plugin/x/protocol/mysqlx_resultset.proto
 
   av = DBIc_DBISTATE(imp_sth)->get_fbav(imp_sth);
   for (int i = 0; i < numFields; i++) {
@@ -183,7 +193,58 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
     case MYSQLX_TYPE_SET:
     case MYSQLX_TYPE_ENUM:
     case MYSQLX_TYPE_BIT:
-    case MYSQLX_TYPE_DECIMAL:
+      croak("Unsupported column type");
+      break;
+    case MYSQLX_TYPE_DECIMAL: // Format: scale[1], Packed BCD, sign
+      precision = mysqlx_column_get_precision(imp_sth->result, i);
+      dbuf_len = 1024;
+      switch (mysqlx_get_bytes(row, i, 1, dbuf, &dbuf_len)) {
+      case RESULT_NULL:
+        SvOK_off(AvARRAY(av)[i]);
+        break;
+      case RESULT_ERROR:
+        croak("Error fetching decimal");
+        break;
+      case RESULT_MORE_DATA: // TODO: Handle properly
+      default:
+        buf_len = 0;
+        is_negative = false;
+        for (int j=0; j<dbuf_len; j++) {
+          unsigned int v1 = dbuf[j] >> 4;
+          unsigned int v2 = dbuf[j] & 0x0F;
+          switch (v1) {
+          case 12:
+            is_negative = false;
+            goto bcd_done;
+          case 13:
+            is_negative = true;
+            goto bcd_done;
+          default:
+            buf[buf_len++] = 48 + v1;
+          }
+          switch (v2) {
+          case 12:
+            is_negative = false;
+            goto bcd_done;
+          case 13:
+            is_negative = true;
+            goto bcd_done;
+          default:
+            buf[buf_len++] = 48 + v2;
+          }
+        }
+bcd_done:
+        buf2_len = 0;
+        for (int j=0; j<buf_len; j++) {
+          if ((j == 0) && is_negative)
+              buf2[buf2_len++] = 0x2D; // -
+          if ((buf_len -j) == precision)
+              buf2[buf2_len++] = 0x2E; // .
+          buf2[buf2_len++] = buf[j];
+        }
+        sv_setpvn(AvARRAY(av)[i], buf2, buf2_len);
+      }
+      break;
     case MYSQLX_TYPE_BOOL:
     case MYSQLX_TYPE_JSON:
       croak("Unsupported column type");
