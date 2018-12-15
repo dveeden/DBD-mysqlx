@@ -244,7 +244,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       default:
         buf_len = 0;
         is_negative = false;
-        for (int j=0; j<dbuf_len; j++) {
+        for (int j = 0; j < dbuf_len; j++) {
           unsigned int v1 = dbuf[j] >> 4;
           unsigned int v2 = dbuf[j] & 0x0F;
           switch (v1) {
@@ -268,13 +268,13 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
             buf[buf_len++] = 48 + v2;
           }
         }
-bcd_done:
+      bcd_done:
         buf2_len = 0;
-        for (int j=0; j<buf_len; j++) {
+        for (int j = 0; j < buf_len; j++) {
           if ((j == 0) && is_negative)
-              buf2[buf2_len++] = 0x2D; // -
-          if ((buf_len -j) == precision)
-              buf2[buf2_len++] = 0x2E; // .
+            buf2[buf2_len++] = 0x2D; // -
+          if ((buf_len - j) == precision)
+            buf2[buf2_len++] = 0x2E; // .
           buf2[buf2_len++] = buf[j];
         }
         sv_setpvn(AvARRAY(av)[i], buf2, buf2_len);
@@ -340,8 +340,11 @@ int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs) {
   imp_sth->stmt = mysqlx_sql_new(imp_dbh->sess, statement, strlen(statement));
 
   // FIXME: use something similar to mysql_stmt_param_count()
-  //        or actually handle comments. Maybe use count_params() from DBD::mysql
-  for (param_count=0; statement[param_count]; statement[param_count]=='?' ? param_count++ : *statement++);
+  //        or actually handle comments. Maybe use count_params() from
+  //        DBD::mysql
+  for (param_count = 0; statement[param_count];
+       statement[param_count] == '?' ? param_count++ : *statement++)
+    ;
   DBIc_NUM_PARAMS(imp_sth) = param_count;
 
   DBIc_IMPSET_on(imp_sth);
@@ -354,7 +357,8 @@ int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
   imp_sth->result = mysqlx_execute(imp_sth->stmt);
   if (!imp_sth->result) {
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh), "DBD::mysqlx dbd_st_execute err: %s\n",
+      PerlIO_printf(DBIc_LOGPIO(imp_xxh),
+                    "DBD::mysqlx dbd_st_execute err: %s\n",
                     mysqlx_error_message(imp_sth->stmt));
     return -2;
   }
@@ -381,15 +385,16 @@ int dbd_st_blob_read(SV *sth, imp_sth_t *imp_sth, int field, long offset,
 
 int dbd_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV sql_type,
                 SV *attribs, int is_inout, IV maxlen) {
-  int param_num= SvIV(param);
+  int param_num = SvIV(param);
   int result;
 
   D_imp_xxh(sth);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  "DBD::mysqlx dbd_bind_ph num=%d value=%s sql_type=%"IVdf"\n",
-                  param_num, neatsvpv(value,0), sql_type);
+                  "DBD::mysqlx dbd_bind_ph num=%d value=%s sql_type=%" IVdf
+                  "\n",
+                  param_num, neatsvpv(value, 0), sql_type);
 
   // TODO: switch(sql_type)
   // TODO: Handle other types than uint
@@ -398,9 +403,10 @@ int dbd_bind_ph(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value, IV sql_type,
   result = mysqlx_stmt_bind(imp_sth->stmt, PARAM_UINT(SvUV(value)), PARAM_END);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                  "DBD::mysqlx dbd_bind_ph result=%d\n", result);
-  if (result == RESULT_OK) return 1;
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "DBD::mysqlx dbd_bind_ph result=%d\n",
+                  result);
+  if (result == RESULT_OK)
+    return 1;
 
   return 0;
 }
