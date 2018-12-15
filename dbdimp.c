@@ -346,8 +346,6 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       }
       break;
     case MYSQLX_TYPE_JSON:
-      croak("Unsupported column type");
-      break;
     case MYSQLX_TYPE_STRING:
       buf_len = 1024;
       switch (mysqlx_get_bytes(row, i, 0, buf, &buf_len)) {
