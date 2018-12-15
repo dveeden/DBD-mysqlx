@@ -213,7 +213,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
         SvOK_off(AvARRAY(av)[i]);
         break;
       case RESULT_ERROR:
-        croak("Error fetching bool");
+        croak("Error fetching time");
         break;
       case RESULT_MORE_DATA: // TODO: Handle properly
       default:
@@ -249,7 +249,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
         SvOK_off(AvARRAY(av)[i]);
         break;
       case RESULT_ERROR:
-        croak("Error fetching bool");
+        croak("Error fetching datetime");
         break;
       case RESULT_MORE_DATA: // TODO: Handle properly
       default:
