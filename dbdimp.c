@@ -190,8 +190,21 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       // sv_setnv()
     case MYSQLX_TYPE_FLOAT:
       // mysqlx_get_float()
-    case MYSQLX_TYPE_BYTES:
       croak("Unsupported column type");
+      break;
+    case MYSQLX_TYPE_BYTES:
+      buf_len = 1024;
+      switch (mysqlx_get_bytes(row, i, 0, buf, &buf_len)) {
+      case RESULT_NULL:
+        SvOK_off(AvARRAY(av)[i]);
+        break;
+      case RESULT_ERROR:
+        croak("Error fetching bytes");
+        break;
+      case RESULT_MORE_DATA: // TODO: Handle properly
+      default:
+        sv_setpvn(AvARRAY(av)[i], buf, buf_len);
+      }
       break;
     case MYSQLX_TYPE_TIME:
       dbuf_len = 1024;
