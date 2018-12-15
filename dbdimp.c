@@ -142,6 +142,9 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
   unsigned char dbuf[1024];
   size_t dbuf_len = 1024;
   bool is_negative;
+  int64_t datetime[7] = {0};
+  int offset;
+  int part = 0;
 
   D_imp_xxh(sth);
 
@@ -189,7 +192,39 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       // mysqlx_get_float()
     case MYSQLX_TYPE_BYTES:
     case MYSQLX_TYPE_TIME:
+      croak("Unsupported column type");
+      break;
     case MYSQLX_TYPE_DATETIME:
+      dbuf_len = 1024;
+      switch (mysqlx_get_bytes(row, i, 0, dbuf, &dbuf_len)) {
+      case RESULT_NULL:
+        SvOK_off(AvARRAY(av)[i]);
+        break;
+      case RESULT_ERROR:
+        croak("Error fetching bool");
+        break;
+      case RESULT_MORE_DATA: // TODO: Handle properly
+      default:
+        part = 0;
+        offset = 0;
+        memset(datetime, 0, sizeof(datetime));
+        for (int j = 0; j < dbuf_len; j++) {
+          if ((dbuf[j] & 128) == 128) {
+            datetime[part] += (dbuf[j] & 127) << offset;
+            offset = 7;
+          } else {
+            datetime[part] += (dbuf[j] & 127) << offset;
+            offset = 0;
+            part++;
+          }
+        }
+        // TODO: Remove parts which are all zero
+        buf_len = sprintf(buf, "%04ld-%02ld-%02ld %02ld:%02ld:%02ld.%06ld\n",
+                          datetime[0], datetime[1], datetime[2], datetime[3],
+                          datetime[4], datetime[5], datetime[6]);
+        sv_setpvn(AvARRAY(av)[i], buf, buf_len - 1);
+      }
+      break;
     case MYSQLX_TYPE_SET:
     case MYSQLX_TYPE_ENUM:
     case MYSQLX_TYPE_BIT:
