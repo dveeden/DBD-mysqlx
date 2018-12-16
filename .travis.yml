@@ -8,6 +8,8 @@ perl:
   - "5.26"
   - "5.26-shrplib"
   - "5.28"
+services:
+  - mysql
 addons:
   apt:
     sources:
