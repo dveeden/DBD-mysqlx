@@ -95,3 +95,23 @@ DBD::mysql - MySQL X Protocol driver for the Perl5 Database Interface (DBI)
 =head1 COPYRIGHT
 
 This module is Copyright (c) 2018 Daniël van Eeden
+
+=head1 SYNOPSIS
+
+ use DBI;
+ my $dsn = "DBI:mysqlx:localhost/test"
+ my $dbh = DBI->connect($dsn, "msandbox", "msandbox");
+
+ $dbh->do("DO 1");
+ $dbh->disconnect();
+
+The part of the DSN after C<DBI:mysqlx:> is identical to what you would
+use in a X Protocol URI after the C<@>. The DSN above would translate to
+C<mysqlx://msandbox:msandbox@localhost/test>
+
+=head1 DESCRIPTION
+
+This driver allows you to connect to a MySQL 5.7.12 or newer database
+over the MySQL X Protocol. On 5.7 you need to configure it to load the
+C<mysqlx> plugin. See L<https://dev.mysql.com/doc/refman/5.7/en/document-store-setting-up.html>
+for details.
