@@ -405,10 +405,8 @@ int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
 
   imp_sth->result = mysqlx_execute(imp_sth->stmt);
   if (!imp_sth->result) {
-    if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-      PerlIO_printf(DBIc_LOGPIO(imp_xxh),
-                    "DBD::mysqlx dbd_st_execute err: %s\n",
-                    mysqlx_error_message(imp_sth->stmt));
+    dbd_drv_error(sth, mysqlx_error_num(imp_sth->stmt),
+                  mysqlx_error_message(imp_sth->stmt));
     return -2;
   }
 
