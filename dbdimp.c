@@ -26,19 +26,21 @@ void dbd_init(dbistate_t *dbistate) {
 
 int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
                   char *pwd, SV *attribs) {
-  int port = 33060;
   int errcode;
   char errstr[255];
 
   dTHX;
   D_imp_xxh(dbh);
 
-  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "port=%d, user=%s, password=%s\n", port,
-                  uid, pwd);
+  size_t url_len =
+      strlen("mysqlx://:@") + strlen(uid) + strlen(pwd) + strlen(dbname) + 1;
+  char url[url_len];
 
-  imp_dbh->sess =
-      mysqlx_get_session(NULL, port, uid, pwd, NULL, errstr, &errcode);
+  snprintf(url, url_len, "mysqlx://%s:%s@%s", uid, pwd, dbname);
+  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "url=%s\n", url);
+
+  imp_dbh->sess = mysqlx_get_session_from_url(url, errstr, &errcode);
 
   if (!imp_dbh->sess) {
     dbd_drv_error(dbh, errcode, errstr);
@@ -159,6 +161,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
 
   // Docs for X Protocol data types:
   // https://dev.mysql.com/doc/internals/en/x-protocol-messages-messages.html
+  // https://dev.mysql.com/doc/dev/mysql-server/latest/mysqlx_protocol_messages.html#Mysqlx_Resultset_ColumnMetaData
   // https://github.com/mysql/mysql-server/blob/8.0/plugin/x/protocol/mysqlx_resultset.proto
 
   av = DBIc_DBISTATE(imp_sth)->get_fbav(imp_sth);
