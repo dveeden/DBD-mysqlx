@@ -195,6 +195,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       // mysqlx_get_float()
       croak("Unsupported column type");
       break;
+    case MYSQLX_TYPE_GEOMETRY:
     case MYSQLX_TYPE_BYTES:
       buf_len = 1024;
       switch (mysqlx_get_bytes(row, i, 0, buf, &buf_len)) {
@@ -363,7 +364,6 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
         sv_setpvn(AvARRAY(av)[i], buf, buf_len - 1);
       }
       break;
-    case MYSQLX_TYPE_GEOMETRY:
     case MYSQLX_TYPE_TIMESTAMP:
     case MYSQLX_TYPE_NULL:
     case MYSQLX_TYPE_EXPR:
