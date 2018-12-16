@@ -425,6 +425,11 @@ int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
   }
 }
 
+SV *dbd_st_last_insert_id(SV *sth, imp_sth_t *imp_sth, SV *catalog, SV *schema,
+                          SV *table, SV *field, SV *attr) {
+  return sv_2mortal(newSVuv(mysqlx_get_auto_increment_value(imp_sth->result)));
+}
+
 int dbd_st_blob_read(SV *sth, imp_sth_t *imp_sth, int field, long offset,
                      long len, SV *destrv, long destoffset) {
   return 0;
