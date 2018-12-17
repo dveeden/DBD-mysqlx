@@ -54,11 +54,49 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
 }
 
 int dbd_db_STORE_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv, SV *valuesv) {
+  STRLEN kl;
+  char *key = SvPV(keysv, kl);
+  const bool bool_value = SvTRUE(valuesv);
+
+  switch (kl) {
+  case 10:
+    if (strEQ("AutoCommit", key)) {
+      if (imp_dbh->sess) {
+        mysqlx_result_t *res =
+            mysqlx_sql(imp_dbh->sess,
+                       bool_value ? "SET autocommit=ON" : "SET autocommit=OFF",
+                       bool_value ? 17 : 18);
+        if (res == NULL)
+          dbd_drv_error(dbh, mysqlx_error_num(imp_dbh->sess),
+                        mysqlx_error_message(imp_dbh->sess));
+      }
+      DBIc_set(imp_dbh, DBIcf_AutoCommit, bool_value);
+    } else {
+      return FALSE;
+    }
+    break;
+  default:
+    return FALSE;
+  }
+
   return TRUE;
 }
 
 SV *dbd_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv) {
-  return &PL_sv_yes;
+  STRLEN kl;
+  char *key = SvPV(keysv, kl);
+  SV *retsv = Nullsv;
+
+  switch (kl) {
+  case 10:
+    if (strEQ("AutoCommit", key)) {
+      retsv = boolSV(DBIc_has(imp_dbh, DBIcf_AutoCommit));
+    }
+    break;
+  default:
+    break;
+  }
+  return retsv;
 }
 
 int dbd_db_commit(SV *dbh, imp_dbh_t *imp_dbh) {
@@ -90,6 +128,7 @@ void dbd_db_destroy(SV *dbh, imp_dbh_t *imp_dbh) { return; }
 int dbd_db_disconnect(SV *dbh, imp_dbh_t *imp_dbh) {
   if (imp_dbh->sess)
     mysqlx_session_close(imp_dbh->sess);
+  imp_dbh->sess = NULL;
 
   DBIc_IMPSET_off(imp_dbh);
 
