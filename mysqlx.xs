@@ -14,3 +14,20 @@ DBISTATE_DECLARE;
 MODULE = DBD::mysqlx PACKAGE = DBD::mysqlx
  
 INCLUDE: mysqlx.xsi
+
+MODULE = DBD::mysqlx PACKAGE = DBD::mysqlx::db
+
+SV*
+ping(dbh)
+  SV* dbh;
+  PROTOTYPE: $
+  CODE:
+    int retval = 0;
+    D_imp_dbh(dbh);
+
+    mysqlx_result_t *result =
+      mysqlx_sql(imp_dbh->sess, "/* DBD::mysqlx ping */", MYSQLX_NULL_TERMINATED);
+    if (result != NULL) retval=1;
+    RETVAL = boolSV(retval);
+  OUTPUT:
+    RETVAL
