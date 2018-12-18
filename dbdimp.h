@@ -42,6 +42,6 @@ struct imp_sth_st {
 #define dbd_st_finish3 mysqlx_st_finish3
 #define dbd_st_destroy mysqlx_st_destroy
 #define dbd_st_execute mysqlx_st_execute
-#define dbd_st_last_insert_id mysql_st_last_insert_id
+#define dbd_st_last_insert_id mysqlx_st_last_insert_id
 #define dbd_bind_ph mysqlx_bind_ph
 #define dbd_drv_error mysqlx_drv_error
