@@ -470,6 +470,7 @@ int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs) {
 
 int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
   D_imp_xxh(sth);
+  mysqlx_error_t *warnings;
 
   imp_sth->result = mysqlx_execute(imp_sth->stmt);
   if (!imp_sth->result) {
@@ -478,8 +479,21 @@ int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
     return -2;
   }
 
+  // FIXME: This doesn't work.
+  //        see https://bugs.mysql.com/bug.php?id=93662
+  if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
+    PerlIO_printf(DBIc_LOGPIO(imp_xxh), "warning count: %d\n",
+                  mysqlx_result_warning_count(imp_sth->result));
+
   DBIc_NUM_FIELDS(imp_sth) = mysqlx_column_get_count(imp_sth->result);
   DBIc_ACTIVE_on(imp_sth);
+
+  // FIXME: This doesn't work.
+  //        see https://bugs.mysql.com/bug.php?id=93662
+  while ((warnings = mysqlx_result_next_warning(imp_sth->result)) != NULL) {
+    warn("%d: %s", mysqlx_error_num(warnings),
+         mysqlx_error_message(warnings));
+  }
 
   uint64_t affected = mysqlx_get_affected_count(imp_sth->result);
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
