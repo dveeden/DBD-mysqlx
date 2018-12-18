@@ -10,8 +10,6 @@
 #include <mysqlx/xapi.h>
 #include <DBIXS.h>
 
-bool dbd_mysqlx_is_utf8_collation(uint16_t collation);
-
 struct imp_drh_st {
   dbih_drc_t com; /* MUST be first element in structure   */
 };
