@@ -401,6 +401,9 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       case RESULT_MORE_DATA: // TODO: Handle properly
       default:
         sv_setpvn(AvARRAY(av)[i], buf, buf_len - 1);
+        if (dbd_mysqlx_is_utf8_collation(
+                mysqlx_column_get_collation(imp_sth->result, i)))
+          SvUTF8_on(AvARRAY(av)[i]);
       }
       break;
     case MYSQLX_TYPE_TIMESTAMP:
@@ -414,6 +417,32 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
   }
 
   return av;
+}
+
+/* Check if a collation is using UTF-8
+ *
+ * To get the ID's:
+ * SELECT ID FROM information_schema.COLLATIONS WHERE CHARACTER_SET_NAME LIKE
+ * 'utf8%' ORDER BY IS_DEFAULT DESC, COLLATION_NAME LIKE '%\_general\_%' DESC,
+ * COLLATION_NAME LIKE '%\_bin%' DESC, COLLATION_NAME LIKE '%\_unicode\_%' DESC,
+ * COLLATION_NAME LIKE 'utf8mb4_0900\_%' DESC
+ *
+ * Note that default and generic collations are moved to the front of the list
+ */
+bool dbd_mysqlx_is_utf8_collation(uint16_t collation) {
+  uint16_t utf8collations[] = {
+      33,  255, 223, 45,  83,  46,  192, 246, 224, 214, 305, 278, 199, 207, 215,
+      228, 236, 244, 259, 267, 277, 285, 293, 200, 208, 229, 237, 245, 260, 268,
+      286, 294, 306, 193, 201, 209, 230, 238, 261, 269, 279, 287, 296, 307, 194,
+      202, 210, 231, 239, 247, 262, 270, 280, 288, 297, 195, 203, 211, 232, 240,
+      263, 271, 281, 289, 298, 196, 204, 212, 225, 233, 241, 256, 264, 273, 282,
+      290, 300, 197, 205, 213, 226, 234, 242, 257, 265, 274, 283, 291, 303, 76,
+      198, 206, 227, 235, 243, 258, 266, 275, 284, 292, 304};
+  for (int col = 0; col < sizeof(utf8collations) / sizeof(uint16_t); col++) {
+    if (utf8collations[col] == collation)
+      return true;
+  }
+  return false;
 }
 
 int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs) {
