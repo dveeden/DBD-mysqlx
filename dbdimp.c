@@ -168,31 +168,31 @@ int dbd_st_STORE_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv, SV *valuesv) {
 SV *dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv) {
   D_imp_xxh(sth);
   STRLEN(kl);
+  SV *retsv = Nullsv;
   char *key = SvPV(keysv, kl);
   int numFields = DBIc_NUM_FIELDS(imp_sth);
 
   if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
     PerlIO_printf(DBIc_LOGPIO(imp_xxh), "dbd_st_FETCH_attrib %s\n", key);
 
-  AV *av = newAV();
-  for (int i = 0; i < numFields; i++) {
-    SV *sv = &PL_sv_undef;
-
-    switch (*key) {
-    case 'N':
-      if (strEQ(key, "NAME")) {
+  switch (kl) {
+  case 4:
+    if (strEQ(key, "NAME")) {
+      AV *av = newAV();
+      for (int i = 0; i < numFields; i++) {
+        SV *sv = &PL_sv_undef;
         const char *colname = mysqlx_column_get_name(imp_sth->result, i);
         sv = newSVpvn(colname, strlen(colname));
+        av_push(av, sv);
       }
-      break;
-    }
-    av_push(av, sv);
+      if (av == Nullav)
+        retsv = &PL_sv_undef;
+      else
+        retsv = sv_2mortal(newRV_inc((SV *)av));
+      }
   }
 
-  if (av == Nullav)
-    return &PL_sv_undef;
-
-  return sv_2mortal(newRV_inc((SV *)av));
+  return retsv;
 }
 
 AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
