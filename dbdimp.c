@@ -189,7 +189,7 @@ SV *dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv) {
         retsv = &PL_sv_undef;
       else
         retsv = sv_2mortal(newRV_inc((SV *)av));
-      }
+    }
   }
 
   return retsv;
@@ -491,8 +491,7 @@ int dbd_st_execute(SV *sth, imp_sth_t *imp_sth) {
   // FIXME: This doesn't work.
   //        see https://bugs.mysql.com/bug.php?id=93662
   while ((warnings = mysqlx_result_next_warning(imp_sth->result)) != NULL) {
-    warn("%d: %s", mysqlx_error_num(warnings),
-         mysqlx_error_message(warnings));
+    warn("%d: %s", mysqlx_error_num(warnings), mysqlx_error_message(warnings));
   }
 
   uint64_t affected = mysqlx_get_affected_count(imp_sth->result);
