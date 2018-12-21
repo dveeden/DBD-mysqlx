@@ -161,6 +161,7 @@ int dbd_db_disconnect(SV *dbh, imp_dbh_t *imp_dbh) {
   return 1;
 }
 
+// TODO: Implement this
 int dbd_st_STORE_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv, SV *valuesv) {
   return 0;
 }
@@ -540,6 +541,7 @@ SV *dbd_st_last_insert_id(SV *sth, imp_sth_t *imp_sth, SV *catalog, SV *schema,
   return sv_2mortal(newSVuv(mysqlx_get_auto_increment_value(imp_sth->result)));
 }
 
+// TODO: implement this
 int dbd_st_blob_read(SV *sth, imp_sth_t *imp_sth, int field, long offset,
                      long len, SV *destrv, long destoffset) {
   return 0;
