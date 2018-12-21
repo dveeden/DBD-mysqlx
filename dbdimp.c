@@ -372,7 +372,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       }
       break;
     case MYSQLX_TYPE_BIT:
-      croak("Unsupported column type");
+      croak("Unsupported BIT column type");
       break;
     case MYSQLX_TYPE_DECIMAL: // Format: scale[1], Packed BCD, sign
       precision = mysqlx_column_get_precision(imp_sth->result, i);
@@ -461,8 +461,10 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       }
       break;
     case MYSQLX_TYPE_NULL:
+      croak("Unsupported NULL column type");
+      break;
     case MYSQLX_TYPE_EXPR:
-      croak("Unsupported column type");
+      croak("Unsupported EXPR column type");
       break;
     default:
       croak("Unknown column type");
