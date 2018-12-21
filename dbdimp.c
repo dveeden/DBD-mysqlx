@@ -346,7 +346,6 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       }
       break;
     case MYSQLX_TYPE_SET:
-    case MYSQLX_TYPE_ENUM:
     case MYSQLX_TYPE_BIT:
       croak("Unsupported column type");
       break;
@@ -417,6 +416,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
           sv_setuv(AvARRAY(av)[i], 0);
       }
       break;
+    case MYSQLX_TYPE_ENUM:
     case MYSQLX_TYPE_JSON:
     case MYSQLX_TYPE_STRING:
       buf_len = 1024;
