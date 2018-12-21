@@ -314,6 +314,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
         sv_setpvn(AvARRAY(av)[i], buf, buf_len - 1);
       }
       break;
+    case MYSQLX_TYPE_TIMESTAMP:
     case MYSQLX_TYPE_DATETIME:
       dbuf_len = 1024;
       switch (mysqlx_get_bytes(row, i, 0, dbuf, &dbuf_len)) {
@@ -459,7 +460,6 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
           SvUTF8_on(AvARRAY(av)[i]);
       }
       break;
-    case MYSQLX_TYPE_TIMESTAMP:
     case MYSQLX_TYPE_NULL:
     case MYSQLX_TYPE_EXPR:
       croak("Unsupported column type");
