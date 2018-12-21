@@ -201,6 +201,8 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
   int numFields = DBIc_NUM_FIELDS(imp_sth);
   long int intres;
   long unsigned int uintres;
+  float floatres;
+  double doubleres;
   size_t buf_len = 1024;
   char buf[1024];
   char buf2[1024];
@@ -254,11 +256,12 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       sv_setuv(AvARRAY(av)[i], uintres);
       break;
     case MYSQLX_TYPE_DOUBLE:
-      // mysqlx_get_double()
-      // sv_setnv()
-    case MYSQLX_TYPE_FLOAT:
-      // mysqlx_get_float()
-      croak("Unsupported column type");
+      mysqlx_get_double(row, i, &doubleres);
+      sv_setnv(AvARRAY(av)[i], doubleres);
+      break;
+    case MYSQLX_TYPE_FLOAT: // FIXME: returns 0.333333343267441 instead of 0.333333
+      mysqlx_get_float(row, i, &floatres);
+      sv_setnv(AvARRAY(av)[i], floatres);
       break;
     case MYSQLX_TYPE_GEOMETRY:
     case MYSQLX_TYPE_BYTES:
