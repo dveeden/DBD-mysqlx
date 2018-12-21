@@ -346,6 +346,30 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       }
       break;
     case MYSQLX_TYPE_SET:
+      buf2_len = 1024;
+      switch (mysqlx_get_bytes(row, i, 0, buf2, &buf2_len)) {
+      case RESULT_NULL:
+        SvOK_off(AvARRAY(av)[i]);
+        break;
+      case RESULT_ERROR:
+        croak("Error fetching bytes");
+        break;
+      case RESULT_MORE_DATA: // TODO: Handle properly
+      default: ;
+        int done = 0;
+        buf_len = 0;
+        buf[0] = 0;
+        while (done < buf2_len) {
+          if ((done > 0) && buf_len++)
+              strncat(buf, ",", 1);
+          int len = buf2[done++];
+          strncat(buf, buf2+done, len);
+          done = done + len;
+          buf_len = buf_len + len;
+        }
+        sv_setpvn(AvARRAY(av)[i], buf, buf_len);
+      }
+      break;
     case MYSQLX_TYPE_BIT:
       croak("Unsupported column type");
       break;
