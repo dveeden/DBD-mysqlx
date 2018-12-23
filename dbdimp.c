@@ -260,7 +260,8 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       mysqlx_get_double(row, i, &doubleres);
       sv_setnv(AvARRAY(av)[i], doubleres);
       break;
-    case MYSQLX_TYPE_FLOAT: // FIXME: returns 0.333333343267441 instead of 0.333333
+    case MYSQLX_TYPE_FLOAT: // FIXME: returns 0.333333343267441 instead of
+                            // 0.333333
       mysqlx_get_float(row, i, &floatres);
       sv_setnv(AvARRAY(av)[i], floatres);
       break;
@@ -357,15 +358,15 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
         croak("Error fetching bytes");
         break;
       case RESULT_MORE_DATA: // TODO: Handle properly
-      default: ;
+      default:;
         int done = 0;
         buf_len = 0;
         buf[0] = 0;
         while (done < buf2_len) {
           if ((done > 0) && buf_len++)
-              strncat(buf, ",", 1);
+            strncat(buf, ",", 1);
           int len = buf2[done++];
-          strncat(buf, buf2+done, len);
+          strncat(buf, buf2 + done, len);
           done = done + len;
           buf_len = buf_len + len;
         }
@@ -444,21 +445,39 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       break;
     case MYSQLX_TYPE_ENUM:
     case MYSQLX_TYPE_JSON:
-    case MYSQLX_TYPE_STRING:
-      buf_len = 1024;
-      switch (mysqlx_get_bytes(row, i, 0, buf, &buf_len)) {
-      case RESULT_NULL:
-        SvOK_off(AvARRAY(av)[i]);
-        break;
-      case RESULT_ERROR:
-        croak("Error fetching string");
-        break;
-      case RESULT_MORE_DATA: // TODO: Handle properly
-      default:
-        sv_setpvn(AvARRAY(av)[i], buf, buf_len - 1);
-        if (dbd_mysqlx_is_utf8_collation(
-                mysqlx_column_get_collation(imp_sth->result, i)))
-          SvUTF8_on(AvARRAY(av)[i]);
+    case MYSQLX_TYPE_STRING:;
+      uint64_t offset = 0;
+      bool hasmore = true;
+      while (hasmore) {
+        buf_len = 1024;
+        switch (mysqlx_get_bytes(row, i, offset, buf, &buf_len)) {
+        case RESULT_NULL:
+          SvOK_off(AvARRAY(av)[i]);
+          hasmore = false;
+          break;
+        case RESULT_ERROR:
+          croak("Error fetching string");
+          hasmore = false;
+          break;
+        case RESULT_OK:
+          hasmore = false;
+        case RESULT_MORE_DATA:
+          if (offset == 0) {
+            sv_setpvn(AvARRAY(av)[i], buf, hasmore ? buf_len : buf_len - 1);
+            if (dbd_mysqlx_is_utf8_collation(
+                    mysqlx_column_get_collation(imp_sth->result, i)))
+              SvUTF8_on(AvARRAY(av)[i]);
+          } else {
+            sv_catpvn(AvARRAY(av)[i], buf, hasmore ? buf_len : buf_len - 1);
+          }
+          if (hasmore)
+            offset += 1024;
+          break;
+        default:
+          croak("Got unexpeced result from mysqlx_get_bytes()");
+          hasmore = false;
+          break;
+        }
       }
       break;
     case MYSQLX_TYPE_NULL:
