@@ -204,13 +204,13 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
   long unsigned int uintres;
   float floatres;
   double doubleres;
-  size_t buf_len = 1024;
-  char buf[1024];
-  char buf2[1024];
-  size_t buf2_len = 1024;
+  size_t buf_len = DBD_MYSQLX_FETCH_BUF_LEN;
+  char buf[DBD_MYSQLX_FETCH_BUF_LEN];
+  char buf2[DBD_MYSQLX_FETCH_BUF_LEN];
+  size_t buf2_len = DBD_MYSQLX_FETCH_BUF_LEN;
   int precision;
-  unsigned char dbuf[1024];
-  size_t dbuf_len = 1024;
+  unsigned char dbuf[DBD_MYSQLX_FETCH_BUF_LEN];
+  size_t dbuf_len = DBD_MYSQLX_FETCH_BUF_LEN;
   bool is_negative;
   int64_t datetime[7] = {0};
   int offset;
@@ -267,7 +267,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       break;
     case MYSQLX_TYPE_GEOMETRY:
     case MYSQLX_TYPE_BYTES:
-      buf_len = 1024;
+      buf_len = DBD_MYSQLX_FETCH_BUF_LEN;
       switch (mysqlx_get_bytes(row, i, 0, buf, &buf_len)) {
       case RESULT_NULL:
         SvOK_off(AvARRAY(av)[i]);
@@ -281,7 +281,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       }
       break;
     case MYSQLX_TYPE_TIME:
-      dbuf_len = 1024;
+      dbuf_len = DBD_MYSQLX_FETCH_BUF_LEN;
       switch (mysqlx_get_bytes(row, i, 0, dbuf, &dbuf_len)) {
       case RESULT_NULL:
         SvOK_off(AvARRAY(av)[i]);
@@ -318,7 +318,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       break;
     case MYSQLX_TYPE_TIMESTAMP:
     case MYSQLX_TYPE_DATETIME:
-      dbuf_len = 1024;
+      dbuf_len = DBD_MYSQLX_FETCH_BUF_LEN;
       switch (mysqlx_get_bytes(row, i, 0, dbuf, &dbuf_len)) {
       case RESULT_NULL:
         SvOK_off(AvARRAY(av)[i]);
@@ -349,7 +349,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       }
       break;
     case MYSQLX_TYPE_SET:
-      buf2_len = 1024;
+      buf2_len = DBD_MYSQLX_FETCH_BUF_LEN;
       switch (mysqlx_get_bytes(row, i, 0, buf2, &buf2_len)) {
       case RESULT_NULL:
         SvOK_off(AvARRAY(av)[i]);
@@ -378,7 +378,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       break;
     case MYSQLX_TYPE_DECIMAL: // Format: scale[1], Packed BCD, sign
       precision = mysqlx_column_get_precision(imp_sth->result, i);
-      dbuf_len = 1024;
+      dbuf_len = DBD_MYSQLX_FETCH_BUF_LEN;
       switch (mysqlx_get_bytes(row, i, 1, dbuf, &dbuf_len)) {
       case RESULT_NULL:
         SvOK_off(AvARRAY(av)[i]);
@@ -427,7 +427,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       }
       break;
     case MYSQLX_TYPE_BOOL:
-      buf_len = 1024;
+      buf_len = DBD_MYSQLX_FETCH_BUF_LEN;
       switch (mysqlx_get_bytes(row, i, 0, buf, &buf_len)) {
       case RESULT_NULL:
         SvOK_off(AvARRAY(av)[i]);
@@ -449,7 +449,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       uint64_t offset = 0;
       bool hasmore = true;
       while (hasmore) {
-        buf_len = 1024;
+        buf_len = DBD_MYSQLX_FETCH_BUF_LEN;
         switch (mysqlx_get_bytes(row, i, offset, buf, &buf_len)) {
         case RESULT_NULL:
           SvOK_off(AvARRAY(av)[i]);
@@ -471,7 +471,7 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
             sv_catpvn(AvARRAY(av)[i], buf, hasmore ? buf_len : buf_len - 1);
           }
           if (hasmore)
-            offset += 1024;
+            offset += DBD_MYSQLX_FETCH_BUF_LEN;
           break;
         default:
           croak("Got unexpeced result from mysqlx_get_bytes()");
