@@ -34,7 +34,7 @@ sub connect {
   my ($drh, $dbname, $user, $auth, $attr) = @_;
 
   my $dbh = DBI::_new_dbh($drh, {
-    'Name' => $dbname,
+    'Name' => split(/\//,$dbname),
   }) or return undef;
 
   DBD::mysqlx::db::_login($dbh, $dbname, $user, $auth, $attr)
