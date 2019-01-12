@@ -1,6 +1,6 @@
 package DBD::mysqlx;
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 our @ISA     = 'DynaLoader';
 
 __PACKAGE__->bootstrap($VERSION);

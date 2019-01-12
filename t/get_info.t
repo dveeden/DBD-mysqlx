@@ -10,7 +10,7 @@ my $dbh = DBI->connect($dsn, "msandbox", "msandbox");
 cmp_ok($dbh->get_info(2), "eq", "dbi:mysqlx:localhost", "SQL_DATA_SOURCE_NAME");
 
 # TODO: Detect version to match against
-cmp_ok($dbh->get_info(7), "eq", "00.02.0000", "SQL_DRIVER_VER");
+cmp_ok($dbh->get_info(7), "eq", "00.03.0000", "SQL_DRIVER_VER");
 
 cmp_ok($dbh->get_info(13), "eq", "localhost", "SQL_SERVER_NAME");
 cmp_ok($dbh->get_info(16), "eq", "test", "SQL_DATABASE_NAME");
