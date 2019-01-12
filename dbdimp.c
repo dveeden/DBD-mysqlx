@@ -161,7 +161,7 @@ int dbd_db_disconnect(SV *dbh, imp_dbh_t *imp_dbh) {
   return 1;
 }
 
-// TODO: Implement this
+// There are currently not sth attributes we support or need
 int dbd_st_STORE_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv, SV *valuesv) {
   return 0;
 }
