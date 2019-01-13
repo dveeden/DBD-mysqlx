@@ -1,5 +1,6 @@
 use ExtUtils::MakeMaker;
 use DBI::DBD;
+use Devel::CheckLib;
 use strict;
 use warnings;
 
@@ -14,6 +15,15 @@ my %opts = (
         'OBJECT'       => '$(O_FILES)',
         'INC'          => "-I$dbi_arch_dir -I/usr/include/mysql-cppconn-8 -std=gnu99",
         'LIBS'         => '-lmysqlcppconn8',
+        'CONFIGURE_REQUIRES' => {
+            'DBI' => '1.642',
+            'Devel::CheckLib' => '1.09',
+            'ExtUtils::MakeMaker' => 0,
+        },
+);
+
+assert_lib(
+  LIBS => '-lmysqlcppconn8', # MySQL Connector/C++ 8.x
 );
 
 WriteMakefile(%opts);
