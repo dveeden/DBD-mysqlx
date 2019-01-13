@@ -132,7 +132,7 @@ DBD::mysqlx only supports last_insert_id() on the $sth, not on the $dbh.
 
 =head2 Testing
 
-Just run C<make test>.
+Just run C<make test> or C<prove -b>.
 
 The defaults are to connect to localhost with msandbox as username and password.
 If you need anything else than ghe defaults then set these environment variables:

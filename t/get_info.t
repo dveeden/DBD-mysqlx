@@ -14,7 +14,6 @@ my ($expected_dsn) = split(/\//, lc $test_dsn);
 cmp_ok($dbh->get_info(2), "eq", $expected_dsn, "SQL_DATA_SOURCE_NAME");
 
 my $expected_sql_driver_ver = sprintf '%02d.%02d.0000', split (/\./, $DBD::mysqlx::VERSION);
-diag $expected_sql_driver_ver;
 cmp_ok($dbh->get_info(7), "eq", $expected_sql_driver_ver, "SQL_DRIVER_VER");
 
 my $expected_server_name = $1 if $expected_dsn =~ /dbi:mysqlx:(.+)/;
