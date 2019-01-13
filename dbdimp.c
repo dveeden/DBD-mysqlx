@@ -211,9 +211,9 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
   int precision;
   unsigned char dbuf[DBD_MYSQLX_FETCH_BUF_LEN];
   size_t dbuf_len = DBD_MYSQLX_FETCH_BUF_LEN;
-  bool is_negative;
+  bool is_negative, hasmore;
   int64_t datetime[7] = {0};
-  int offset;
+  uint64_t offset;
   int part = 0;
 
   D_imp_xxh(sth);
@@ -267,17 +267,35 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       break;
     case MYSQLX_TYPE_GEOMETRY:
     case MYSQLX_TYPE_BYTES:
-      buf_len = DBD_MYSQLX_FETCH_BUF_LEN;
-      switch (mysqlx_get_bytes(row, i, 0, buf, &buf_len)) {
-      case RESULT_NULL:
-        SvOK_off(AvARRAY(av)[i]);
-        break;
-      case RESULT_ERROR:
-        croak("Error fetching bytes");
-        break;
-      case RESULT_MORE_DATA: // TODO: Handle properly
-      default:
-        sv_setpvn(AvARRAY(av)[i], buf, buf_len);
+      offset = 0;
+      hasmore = true;
+      while (hasmore) {
+        buf_len = DBD_MYSQLX_FETCH_BUF_LEN;
+        switch (mysqlx_get_bytes(row, i, offset, buf, &buf_len)) {
+        case RESULT_NULL:
+          SvOK_off(AvARRAY(av)[i]);
+          hasmore = false;
+          break;
+        case RESULT_ERROR:
+          croak("Error fetching bytes");
+          hasmore = false;
+          break;
+        case RESULT_OK:
+          hasmore = false;
+        case RESULT_MORE_DATA:
+          if (offset == 0) {
+            sv_setpvn(AvARRAY(av)[i], buf, buf_len);
+          } else {
+            sv_catpvn(AvARRAY(av)[i], buf, buf_len);
+          }
+          if (hasmore)
+            offset += DBD_MYSQLX_FETCH_BUF_LEN;
+          break;
+        default:
+          croak("Got unexpeced result from mysqlx_get_bytes()");
+          hasmore = false;
+          break;
+        }
       }
       break;
     case MYSQLX_TYPE_TIME:
@@ -287,9 +305,9 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
         SvOK_off(AvARRAY(av)[i]);
         break;
       case RESULT_ERROR:
+      case RESULT_MORE_DATA:
         croak("Error fetching time");
         break;
-      case RESULT_MORE_DATA: // TODO: Handle properly
       default:
         part = 0;
         offset = 0;
@@ -324,9 +342,9 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
         SvOK_off(AvARRAY(av)[i]);
         break;
       case RESULT_ERROR:
+      case RESULT_MORE_DATA:
         croak("Error fetching datetime");
         break;
-      case RESULT_MORE_DATA: // TODO: Handle properly
       default:
         part = 0;
         offset = 0;
@@ -355,9 +373,9 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
         SvOK_off(AvARRAY(av)[i]);
         break;
       case RESULT_ERROR:
-        croak("Error fetching bytes");
+      case RESULT_MORE_DATA:
+        croak("Error fetching set");
         break;
-      case RESULT_MORE_DATA: // TODO: Handle properly
       default:;
         int done = 0;
         buf_len = 0;
@@ -384,9 +402,9 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
         SvOK_off(AvARRAY(av)[i]);
         break;
       case RESULT_ERROR:
+      case RESULT_MORE_DATA:
         croak("Error fetching decimal");
         break;
-      case RESULT_MORE_DATA: // TODO: Handle properly
       default:
         buf_len = 0;
         is_negative = false;
@@ -433,9 +451,9 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
         SvOK_off(AvARRAY(av)[i]);
         break;
       case RESULT_ERROR:
+      case RESULT_MORE_DATA:
         croak("Error fetching bool");
         break;
-      case RESULT_MORE_DATA: // TODO: Handle properly
       default:
         if (buf[0] == 0x2)
           sv_setuv(AvARRAY(av)[i], 1);
@@ -445,9 +463,9 @@ AV *dbd_st_fetch _((SV * sth, imp_sth_t *imp_sth)) {
       break;
     case MYSQLX_TYPE_ENUM:
     case MYSQLX_TYPE_JSON:
-    case MYSQLX_TYPE_STRING:;
-      uint64_t offset = 0;
-      bool hasmore = true;
+    case MYSQLX_TYPE_STRING:
+      offset = 0;
+      hasmore = true;
       while (hasmore) {
         buf_len = DBD_MYSQLX_FETCH_BUF_LEN;
         switch (mysqlx_get_bytes(row, i, offset, buf, &buf_len)) {

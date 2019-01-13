@@ -1,5 +1,7 @@
 use ExtUtils::MakeMaker;
 use DBI::DBD;
+use strict;
+use warnings;
 
 my $dbi_arch_dir = dbd_dbi_arch_dir();
 my %opts = (
