@@ -5,18 +5,21 @@ use DBD::mysqlx;
 use Test::More tests => 17;
 use utf8;
 
-my $dsn = "DBI:mysqlx:localhost/test";
-my $dbh = DBI->connect($dsn, "msandbox", "msandbox");
+my $test_dsn = defined($ENV{MYSQLX_TEST_DSN}) ? $ENV{MYSQLX_TEST_DSN} : "DBI:mysqlx:localhost/test";
+my $test_user = defined($ENV{MYSQLX_TEST_USER}) ? $ENV{MYSQLX_TEST_USER} : "msandbox";
+my $test_password = defined($ENV{MYSQLX_TEST_PASSWORD}) ? $ENV{MYSQLX_TEST_PASSWORD} : "msandbox";
+
+my $dbh = DBI->connect($test_dsn, $test_user, $test_password);
 ok $dbh->do(<<'CREATE_TABLE'
 CREATE TEMPORARY TABLE t1(
   id int PRIMARY KEY,
-  c1 VARCHAR(255),
+  c1 VARCHAR(255) CHARACTER SET utf8mb4,
   c2 int,
   c3 json,
   c4 set('a','b'),
   c5 datetime,
   c6 timestamp,
-  c7 timestamp(6),
+  c7 timestamp(6) DEFAULT CURRENT_TIMESTAMP(6),
   c8 double,
   c9 float,
   c10 time

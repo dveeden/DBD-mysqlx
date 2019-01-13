@@ -130,4 +130,13 @@ Attributes on the dbh and sth are different, except for DBI standard attributes.
 
 DBD::mysqlx only supports last_insert_id() on the $sth, not on the $dbh.
 
+=head2 Testing
 
+Just run C<make test>.
+
+The defaults are to connect to localhost with msandbox as username and password.
+If you need anything else than ghe defaults then set these environment variables:
+
+    MYSQLX_TEST_DSN
+    MYSQLX_TEST_USER
+    MYSQLX_TEST_PASSWORD
