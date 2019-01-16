@@ -31,3 +31,42 @@ ping(dbh)
     RETVAL = boolSV(retval);
   OUTPUT:
     RETVAL
+
+void
+quote(dbh, str, type=NULL)
+  SV* dbh
+  SV* str
+  SV* type
+  PROTOTYPE: $$;$
+  CODE:
+{
+    STRLEN from_len;
+    SV *result;
+    char *result_ptr;
+
+    char *from = SvPV(str, from_len);
+
+    result = newSV(from_len*2+3);
+    result_ptr = SvPVX(result);
+    *result_ptr++ = '\'';
+
+    char *from_ptr = from;
+    for (int i = 0; i < from_len; i++) {
+      switch (*from_ptr) {
+      case '"':
+      case '\\':
+      case '\'':
+        *result_ptr++ = '\\';
+      default:
+        *result_ptr++ = *from_ptr;
+        break;
+      }
+      *from_ptr++;
+    }
+    *result_ptr++ = '\'';
+    SvPOK_on(result);
+    SvCUR_set(result, result_ptr - SvPVX(result));
+
+    ST(0) = sv_2mortal(result);
+    XSRETURN(1);
+}
