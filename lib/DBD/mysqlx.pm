@@ -80,6 +80,29 @@ sub get_info {
     return $v;
 }
 
+sub table_info ($) {
+    my ($dbh, $catalog, $schema, $table, $type, $attr) = @_;
+
+    # List schemas
+    if (defined $schema && $schema eq "%" &&
+        (!defined($catalog) || $catalog eq "") &&
+        (!defined($table) || $table eq "")) {
+        $sth = $dbh->prepare("SELECT CATALOG_NAME, SCHEMA_NAME, NULL, NULL, NULL FROM INFORMATION_SCHEMA.SCHEMATA");
+        $sth->execute();
+        return $sth;
+    }
+
+    # List tables
+    if (defined $table && $table eq "%" &&
+        (!defined($catalog) || $catalog eq "") &&
+        (!defined($schema) || $schema eq "")) {
+        $sth = $dbh->prepare("SELECT TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE, NULL FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=SCHEMA()");
+        $sth->execute();
+        return $sth;
+    }
+}
+
+
 1;
 
 __END__
