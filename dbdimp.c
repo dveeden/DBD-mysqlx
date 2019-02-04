@@ -166,6 +166,43 @@ int dbd_st_STORE_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv, SV *valuesv) {
   return 0;
 }
 
+int mysqlx_type_to_sql_type (uint16_t mysqlx_type_id) {
+  switch (mysqlx_type_id) {
+  case MYSQLX_TYPE_SINT:
+  case MYSQLX_TYPE_UINT:
+    return SQL_BIGINT;
+  case MYSQLX_TYPE_DOUBLE:
+    return SQL_DOUBLE;
+  case MYSQLX_TYPE_FLOAT:
+    return SQL_FLOAT;
+  case MYSQLX_TYPE_GEOMETRY:
+  case MYSQLX_TYPE_BYTES:
+    return SQL_LONGVARBINARY;
+  case MYSQLX_TYPE_TIME:
+    return SQL_TYPE_TIME;
+  case MYSQLX_TYPE_TIMESTAMP:
+  case MYSQLX_TYPE_DATETIME:
+    return SQL_TIMESTAMP;
+  case MYSQLX_TYPE_SET:
+  case MYSQLX_TYPE_ENUM:
+  case MYSQLX_TYPE_JSON:
+  case MYSQLX_TYPE_STRING:
+    return SQL_VARCHAR;
+  case MYSQLX_TYPE_BIT:
+    return SQL_BIT;
+  case MYSQLX_TYPE_DECIMAL:
+    return SQL_DECIMAL;
+  case MYSQLX_TYPE_BOOL:
+    return SQL_BOOLEAN;
+  case MYSQLX_TYPE_NULL:
+    croak("Unsupported column type: NULL");
+  case MYSQLX_TYPE_EXPR:
+    croak("Unsupported column type: EXPR");
+  default:
+    croak("Unknown column type");
+  }
+}
+
 SV *dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv) {
   D_imp_xxh(sth);
   STRLEN(kl);
@@ -184,6 +221,19 @@ SV *dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv) {
         SV *sv = &PL_sv_undef;
         const char *colname = mysqlx_column_get_name(imp_sth->result, i);
         sv = newSVpvn(colname, strlen(colname));
+        av_push(av, sv);
+      }
+      if (av == Nullav)
+        retsv = &PL_sv_undef;
+      else
+        retsv = sv_2mortal(newRV_inc((SV *)av));
+    }
+    if (strEQ(key, "TYPE")) {
+      AV *av = newAV();
+      for (int i = 0; i < numFields; i++) {
+        SV *sv = &PL_sv_undef;
+        uint16_t coltype_id = mysqlx_column_get_type(imp_sth->result, i);
+        sv = newSViv(mysqlx_type_to_sql_type(coltype_id));
         av_push(av, sv);
       }
       if (av == Nullav)
