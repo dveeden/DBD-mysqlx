@@ -1,5 +1,5 @@
 dist: xenial
-sudo: false
+sudo: true
 language: perl
 perl:
   - "5.22"
@@ -10,14 +10,14 @@ perl:
   - "5.28"
 services:
   - mysql
-addons:
-  apt:
-    sources:
-      - sourceline: 'deb http://repo.mysql.com/apt/ubuntu/ xenial mysql-tools'
-    packages:
-      - libmysqlcppconn-dev
+before_install:
+  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv 5072E1F5
+  - echo "deb http://repo.mysql.com/apt/ubuntu/ xenial mysql-tools" | sudo tee -a /etc/apt/sources.list
+  - sudo apt-get update -qq
+  - sudo apt-get install libmysqlcppconn-dev -y
+  - mysql -e "INSTALL PLUGIN mysqlx SONAME 'mysqlx.so'"
 install:
-  - cpanm --quiet --notest --skip-satisfied DBI
+  - cpanm --quiet --notest --skip-satisfied DBI Devel::CheckLib
   - cpanm --verbose --installdeps --notest .
 script:
   - perl Makefile.PL
